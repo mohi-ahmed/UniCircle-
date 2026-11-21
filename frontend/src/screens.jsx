@@ -45,8 +45,7 @@ function FormCard({ title, description, children }) {
   return <section className="panel form-card"><h1>{title}</h1>{description && <p className="muted">{description}</p>}{children}</section>;
 }
 
-export function Account({ user, onSession, onUpdate }) {
-  const [register, setRegister] = useState(false);
+export function Account({ user, register = false, onSession, onUpdate }) {
   const [manual, setManual] = useState(false);
   const { error, run, feedback } = useFeedback();
   if (user) {
@@ -109,7 +108,9 @@ export function Account({ user, onSession, onUpdate }) {
       {feedback}
       <button>{register ? 'Register' : 'Sign in'}</button>
     </form>
-    <button className="quiet account-toggle" onClick={() => setRegister(!register)}>{register ? 'Already registered? Sign in' : 'New to UniCircle? Register'}</button>
+    <a className="account-toggle" href={register ? '#signin' : '#register'}>
+      {register ? 'Already registered? Sign in' : 'New to UniCircle? Register'}
+    </a>
   </FormCard>;
 }
 

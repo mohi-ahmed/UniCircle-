@@ -56,6 +56,7 @@ function Marketplace({ listings, users }) {
 function App() {
   const route = useHash();
   const [screen, id] = route.split('/');
+  const authPage = screen === 'signin' || screen === 'register';
   const [state, setState] = useState(demoStore.read);
   const [session, setSession] = useState(demoStore.session);
   const user = state.users.find(entry => entry.id === session);
@@ -75,7 +76,9 @@ function App() {
   }
 
   let page;
-  if (!verified) {
+  if (authPage) {
+    page = <Account key={screen} register={screen === 'register'} onSession={openSession} onUpdate={setState} />;
+  } else if (!verified) {
     page = <Account key={user?.id ?? 'guest'} user={user} onSession={openSession} onUpdate={setState} />;
   } else {
     switch (screen) {
@@ -98,9 +101,6 @@ function App() {
       case 'admin':
         page = user.role === 'admin' ? <Admin state={state} act={act} /> : <p className="panel">Administrator access is required.</p>;
         break;
-      case 'signin':
-        page = <Account key="signin" onSession={openSession} onUpdate={setState} />;
-        break;
       case 'account':
       case 'verify':
         page = <Account key={user.id} user={user} onSession={openSession} onUpdate={setState} />;
@@ -121,9 +121,11 @@ function App() {
         {[['marketplace', 'Marketplace'], ['post', 'Post Item'], ['activity', 'My Activity'], ...(user.role === 'admin' ? [['admin', 'Admin']] : [])].map(([hash, title]) =>
           <a key={hash} href={'#' + hash} aria-current={screen === hash ? 'page' : undefined}>{title}</a>)}
       </nav>}
-      <a className="account-link" href={verified ? '#account' : user ? '#verify' : '#signin'}>
-        {verified ? user.name : user ? 'Verification' : 'Sign in'}
-      </a>
+      <div className="account-links" aria-label="Account">
+        {user && <a className="account-link" href={verified ? '#account' : '#verify'}>{verified ? user.name : 'Verification'}</a>}
+        <a className="account-link" href="#signin" aria-current={screen === 'signin' || (!user && !authPage) ? 'page' : undefined}>Sign in</a>
+        <a className="button secondary" href="#register" aria-current={screen === 'register' ? 'page' : undefined}>Register</a>
+      </div>
     </div></header>
     <main id="main" className="shell" tabIndex={-1}>
       {page}
