@@ -1,38 +1,65 @@
-# UniCircle frontend
+# UniCircle Frontend
+
+UniCircle is a campus marketplace for verified university members. It supports selling, renting, exchanging, donating, and lending items for free. This React and Vite frontend implements the SRS v1.1 flows with demo accounts and browser storage. Live Express and PostgreSQL integration is pending.
 
 Frontend development and UI design by **Toufiqul Islam** (Team Carbon).
 
-React, Vite, and plain CSS for UniCircle's SRS v1.1. The browser demo uses synthetic accounts and browser storage.
-
 ## Run locally
 
-From the repository root, run:
+Use Node.js 20.19+ or 22.12+. From the repository root, run:
 
-    cd frontend
-    npm ci
-    npm run dev
+```bash
+cd frontend
+npm ci
+npm run dev
+```
 
-Use Node.js 20.19+ or 22.12+. Run `npm run build` for the production bundle and `npm test` for the marketplace logic tests.
+Open the **Local** URL printed by Vite. It is usually `http://localhost:5173`. Run `npm run build` for the production bundle, `npm run preview` to preview that bundle and `npm test` for the marketplace logic tests.
 
-## Walk through the demo
+## Demo walkthrough
 
-1. Select **Try demo account** on the sign-in page. Visitors and pending applicants see sign-in or verification screens.
-2. Try **Free items only**. Both Donate and Free Borrowing appear with distinct labels. Try a category and a search, then clear the filters.
-3. Open **Post Item**. **Paid** opens Sell or Rent and its amount. **Free (Donate)** and **Free Borrowing** save zero, while **Exchange** asks for swap terms. A selected photo can be removed and the form submitted without it.
-4. Open Nadia's calculator and request it with pickup and return dates. Switch to Nadia using the demo account bar. In **My Activity → Requests Received**, accept with a pickup point and time, record handover, then confirm return.
-5. Switch to **Campus admin** to review a manual application or hide a listing with a reason. Use fictional details for demo registration.
+1. On **Sign in**, choose **Try demo account**. To test the form manually, use `demo@seu.edu.bd` and the demo password shown on the page. The header displays **Profile** after sign-in. Use **Profile** to change your display name or sign out. Visitors see sign-in or registration, and unverified accounts see verification status.
+2. In **Marketplace**, search by title and try the category and listing-type filters. **Free items only** includes Donate and Free Borrowing. **Clear filters** resets the search and filters.
+3. In **Post Item**, select a price option, enter the item details and optionally upload a photo. Posted items appear in **My Activity → My Listings**, where you can edit or close available listings you own.
+4. Open Nadia’s **Scientific Calculator** listing and send a request with pickup and return dates. Switch to **Nadia** in the demo account bar, then open **My Activity → Requests Received**. Accept the request with a campus pickup point and time on the proposed date, record handover and confirm return.
+5. Switch to **Campus admin** and open **Admin** to review a sample manual verification or hide a listing with a reason. Check **Audit history** for the recorded action. If you test registration, use fictional details. Email verification is simulated.
 
-## Express integration handoff
+| Post Item option | What the form asks for |
+| --- | --- |
+| Paid → Sell | A positive sale price in BDT |
+| Paid → Rent | A positive daily rate in BDT |
+| Free (Donate) | No amount. The listing is saved at zero. |
+| Exchange | What the owner would accept in return |
+| Free Borrowing | No amount. The listing is saved at zero. |
 
-Agree on the endpoint URLs and response format with the backend team before wiring the API. The UI currently reads browser state synchronously. Start from `src/demo-store.js` and the calls in `src/main.jsx` and `src/screens.jsx`. When adopting HTTP, await mutations before navigating or reporting success, show pending and error states, and refresh the affected data. Remove the demo-account switcher from the API-backed build.
+The demo photo picker supports JPG, PNG and WebP up to 1 MB. You can clear a selected photo and submit without it. Demo data persists in the current browser. To reset the demo, clear site data for its local origin.
 
-| Area | What the frontend sends | What the backend needs to provide |
+## Source map
+
+| File | Responsibility |
+| --- | --- |
+| [src/main.jsx](src/main.jsx) | Navigation, access-based screen selection, Marketplace and shared state |
+| [src/screens.jsx](src/screens.jsx) | Account, post and edit form, item details, My Activity and Admin |
+| [src/demo-store.js](src/demo-store.js) | Demo session, registration, profile and browser persistence |
+| [src/market.js](src/market.js) | Listing types, filters, rental fees and request state transitions |
+| [src/market.test.js](src/market.test.js) | Automated marketplace logic tests |
+
+## Backend integration handoff
+
+Agree on Express endpoint URLs, payloads, response formats and enum values before wiring HTTP. The table describes what the UI needs. Align the integration with SRS v1.1.
+
+| Area | Frontend sends | Backend provides or enforces |
 | --- | --- | --- |
-| Auth and profile | Sign-in identifier and password, registration details, sign-out, verification token or resend, display-name edits | Current account status and role, session expiry, and field errors for registration. Keep hashes, tokens, university IDs and emails out of marketplace responses. |
-| Listings | Title, category, description, condition, listing type, BDT amount, exchange terms and optional photo | Available and visible listings newest first, search/category/type/free filtering, owner display info, and authoritative status. Validate Sell/Rent amount, zero for Donate/Free Borrowing, and swap terms without a money amount for Exchange. |
-| Requests | Item ID, pickup and return dates for temporary loans, offered item for swaps, action and pickup details when accepting | Per-user request history with snapshotted terms and fees. Use campus calendar dates for rental fees and agree how timestamp values represent Asia/Dhaka. Only participants receive pickup details. |
-| Admin and uploads | Review decision, listing ID and moderation reason, optional listing image | Admin-scoped review queue and audit records, validated upload with a URL, and server-side role and ownership checks. |
+| Auth and profile | Sign-in identifier and password, registration details, verification token or resend, sign-out and display-name edits | Session state, current user role and verification status, and registration field errors. Only verified accounts can access marketplace routes. Restrict private account data to authorized views. |
+| Listings and uploads | Title, category, description, condition, listing type, price or swap terms and optional image | Visible, available listings newest first, search and filter results, owner display name, authoritative status and validated photo URL. Only the owner can edit or close an available listing. |
+| Requests and handover | Item ID, proposed dates for temporary loans, offer for swaps, and pickup point and time for acceptance | Per-user history, saved terms and fees, allowed actions and authoritative statuses. Only the participants receive pickup details. Use campus calendar dates for rent and agree how to encode Asia/Dhaka pickup times. |
+| Admin | Review decision or listing ID and moderation reason | Admin-scoped verification queue and a timestamped audit record with the actor and reason. A hidden listing disappears from the feed. |
 
-Map the API's enum values to the labels in `src/market.js` or agree on shared values. Use the listing type itself for data exchange, since Paid is a form option. Return clear errors for expired sign-in, forbidden operations, invalid fields and conflicting requests. Accepting a request must reserve the item and resolve competing pending requests in one database transaction. Hiding a checked-out listing must still allow its return and keep it closed afterward.
+- **Listing types.** Agree how API enums map to `Sell`, `Rent`, `Exchange`, `Donate` and `Free Borrowing` in the UI. `Paid` is a form option. Send the actual listing type. Validate a positive BDT amount for Sell and Rent, zero for Donate and Free Borrowing, and swap terms with no money amount for Exchange.
+- **Request consistency.** In one database transaction, accepting a pending request reserves the item and declines competing pending requests. If two accept operations race, return a conflict to the losing request. A hidden listing that is already checked out must still allow its return and stay off the feed afterward.
+- **React wiring.** Start with the calls into `demo-store.js` from `main.jsx` and `screens.jsx`. Replace the synchronous demo calls with an async API client. Await each mutation before reporting success or navigating. Handle loading, field errors, expired sessions and conflicts, then refresh affected data. Remove the demo account switcher from the API-backed build.
+- **Team inputs.** Confirm the campus email domain, verification delivery and resend policy, pickup points, image size limit, and the JSON error format.
 
-Confirm the real campus email domain, verification delivery, pickup points and production photo limit with the backend team. The current photo picker accepts JPG, PNG and WebP up to 1 MB for the demo.
+## Verification status
+
+The production build and four marketplace logic tests passed on the frontend revision this guide describes. Route and form checks covered guest access, signed-in navigation, admin visibility and the five listing types. End-to-end browser QA and testing against the live API are pending.
