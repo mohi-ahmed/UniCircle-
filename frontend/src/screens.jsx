@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { CATEGORIES, CONDITIONS, PICKUP_POINTS, label, rentalDays } from './market.js';
 import { Badge, ItemVisual } from './visuals.jsx';
-import { demoStore } from './demo-store.js';
+import { DEMO_EMAIL, DEMO_PASSWORD, demoStore } from './demo-store.js';
 
 const fieldError = (message, field) => Object.assign(new Error(message), { field });
 const temporary = type => ['Rent', 'Free Borrowing'].includes(type);
@@ -50,7 +50,7 @@ export function Account({ user, onSession, onUpdate }) {
   const [manual, setManual] = useState(false);
   const { error, run, feedback } = useFeedback();
   if (user) {
-    return <FormCard title={user.name} description="University account">
+    return <FormCard title={user.status === 'Verified' ? user.name : 'Verify your university account'} description={user.status === 'Verified' ? 'University account' : user.name}>
       <p><Badge>{user.status}</Badge></p>
       {user.status === 'Email pending' && <>
         <p>In the live app, open the verification link sent to your university email.</p>
@@ -73,7 +73,10 @@ export function Account({ user, onSession, onUpdate }) {
         <button>Save profile</button>
       </form>}
       {feedback}
-      <button className="secondary" onClick={() => onSession(null)}>Sign out</button>
+      <div className="actions account-actions">
+        {user.status === 'Verified' && <a className="button" href="#marketplace">Marketplace</a>}
+        <button className="secondary" onClick={() => onSession(null)}>Sign out</button>
+      </div>
     </FormCard>;
   }
   return <FormCard title={register ? 'Create your account' : 'Sign in'} description="Use your university account to access the marketplace.">
@@ -81,12 +84,12 @@ export function Account({ user, onSession, onUpdate }) {
       e.preventDefault();
       const data = valuesOf(e.currentTarget);
       run(() => {
-        if (!register) return onSession(demoStore.signIn(data.identifier).id);
+        if (!register) return onSession(demoStore.signIn(data.identifier, data.password));
         if (!data.name?.trim()) throw fieldError('Enter your display name.', 'name');
-        if (data.password.length < 8) throw fieldError('Use at least 8 characters.', 'password');
+        if (data.password !== DEMO_PASSWORD) throw fieldError('Use the sample password shown below.', 'password');
         const { user: newUser, state } = demoStore.register(data);
         onUpdate(state);
-        onSession(newUser.id);
+        onSession(newUser);
       });
     }}>
       {register && <>
@@ -96,8 +99,13 @@ export function Account({ user, onSession, onUpdate }) {
       {register ? manual
         ? <Field name="universityId" label="University ID number" key="id" required error={error} />
         : <Field name="email" label="University email" key="email" type="email" autoComplete="email" required error={error} />
-        : <Field name="identifier" label="University email or ID" autoComplete="username" required error={error} />}
-      <Field name="password" label="Password" type="password" autoComplete={register ? 'new-password' : 'current-password'} required error={error} />
+        : <Field name="identifier" label="University email or ID" autoComplete="username" defaultValue={DEMO_EMAIL} required error={error} />}
+      <Field name="password" label="Demo password" type="password" autoComplete="off"
+        aria-describedby={error?.field === 'password' ? 'password-error demo-password' : 'demo-password'} required error={error} />
+      <p className="demo-note" id="demo-password">
+        {register ? 'Use fictional details for demo registration. To sign in again, use the demo password ' : 'Demo password '}
+        <code>{DEMO_PASSWORD}</code>
+      </p>
       {feedback}
       <button>{register ? 'Register' : 'Sign in'}</button>
     </form>

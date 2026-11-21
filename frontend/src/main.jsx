@@ -63,10 +63,11 @@ function App() {
   const item = state.listings.find(entry => entry.id === id);
   useEffect(() => { window.scrollTo(0, 0); }, [route]);
 
-  function openSession(userId) {
+  function openSession(account) {
+    const userId = account?.id ?? '';
     demoStore.setSession(userId);
     setSession(userId);
-    location.hash = userId ? 'marketplace' : 'account';
+    location.hash = !account ? 'signin' : account.status === 'Verified' ? 'marketplace' : 'verify';
   }
 
   function act(action, values) {
@@ -75,7 +76,7 @@ function App() {
 
   let page;
   if (!verified) {
-    page = <Account user={user} onSession={openSession} onUpdate={setState} />;
+    page = <Account key={user?.id ?? 'guest'} user={user} onSession={openSession} onUpdate={setState} />;
   } else {
     switch (screen) {
       case 'post':
@@ -97,8 +98,12 @@ function App() {
       case 'admin':
         page = user.role === 'admin' ? <Admin state={state} act={act} /> : <p className="panel">Administrator access is required.</p>;
         break;
+      case 'signin':
+        page = <Account key="signin" onSession={openSession} onUpdate={setState} />;
+        break;
       case 'account':
-        page = <Account user={user} onSession={openSession} onUpdate={setState} />;
+      case 'verify':
+        page = <Account key={user.id} user={user} onSession={openSession} onUpdate={setState} />;
         break;
       default:
         page = <Marketplace listings={state.listings} users={state.users} />;
@@ -106,20 +111,27 @@ function App() {
   }
 
   return <>
+    <a className="skip-link" href="#main" onClick={event => {
+      event.preventDefault();
+      document.getElementById('main').focus();
+    }}>Skip to content</a>
     <header className="header"><div className="header-inner">
-      <a className="brand" href="#marketplace"><span className="brand-mark" aria-hidden="true">U</span> UniCircle</a>
+      <a className="brand" href={verified ? '#marketplace' : '#signin'}><span className="brand-mark" aria-hidden="true">U</span> UniCircle</a>
       {verified && <nav aria-label="Main navigation">
         {[['marketplace', 'Marketplace'], ['post', 'Post Item'], ['activity', 'My Activity'], ...(user.role === 'admin' ? [['admin', 'Admin']] : [])].map(([hash, title]) =>
           <a key={hash} href={'#' + hash} aria-current={screen === hash ? 'page' : undefined}>{title}</a>)}
       </nav>}
-      <a className="account-link" href="#account">{user?.name ?? 'Sign in'}</a>
+      <a className="account-link" href={verified ? '#account' : user ? '#verify' : '#signin'}>
+        {verified ? user.name : user ? 'Verification' : 'Sign in'}
+      </a>
     </div></header>
-    <main id="main" className="shell">
+    <main id="main" className="shell" tabIndex={-1}>
       {page}
       <aside className="demo-bar" aria-label="Demo accounts"><span>Demo mode · browser data</span>
         {DEMO_USERS.map(account => <button type="button" key={account.id} className="quiet" aria-pressed={user?.id === account.id}
-          onClick={() => openSession(account.id)}>{account.name}</button>)}
+          onClick={() => openSession(account)}>{account.name}</button>)}
       </aside>
+      <footer className="credit">Frontend by Toufiqul Islam</footer>
     </main>
   </>;
 }
