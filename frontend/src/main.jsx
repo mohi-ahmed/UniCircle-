@@ -131,7 +131,6 @@ function App() {
         {DEMO_USERS.map(account => <button type="button" key={account.id} className="quiet" aria-pressed={user?.id === account.id}
           onClick={() => openSession(account)}>{account.name}</button>)}
       </aside>
-      <footer className="credit">Frontend by Toufiqul Islam</footer>
     </main>
   </>;
 }
