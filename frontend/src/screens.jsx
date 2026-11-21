@@ -28,7 +28,8 @@ function useFeedback() {
     {error && !error.field && <p className="error" role="alert">{error.message}</p>}
     {message && <p className="success" role="status">{message}</p>}
   </>;
-  return { error, run, feedback };
+  const clearFieldError = field => setError(current => current?.field === field ? null : current);
+  return { error, run, feedback, clearFieldError };
 }
 
 function Field({ name, label: title, error, children, ...props }) {
@@ -84,7 +85,6 @@ export function Account({ user, register = false, onSession, onUpdate }) {
       <span className="auth-campus">SEU Campus Marketplace</span>
       <h2>{register ? 'Join your campus community.' : 'Your campus, one marketplace.'}</h2>
       <p>Find, share and pass on everyday essentials with other students.</p>
-      <a href="#marketplace">Browse marketplace</a>
     </aside>
     <div className="auth-main">
     <nav className="auth-tabs" aria-label="Account access">
@@ -128,11 +128,10 @@ export function Account({ user, register = false, onSession, onUpdate }) {
   </section>;
 }
 
-const postTypes = [
-  ['Sell', 'Sell', 'Set a price'],
-  ['Rent', 'Rent', 'Charge by the day'],
+const priceOptions = [
+  ['Paid', 'Paid', 'Sell or rent this item'],
   ['Exchange', 'Exchange', 'Swap for another item'],
-  ['Donate', 'Donate', 'Give it away for free'],
+  ['Donate', 'Free (Donate)', 'Give it away for free'],
   ['Free Borrowing', 'Free Borrowing', 'Lend it at no cost'],
 ];
 const fileUrl = file => new Promise((resolve, reject) => {
@@ -144,12 +143,23 @@ const fileUrl = file => new Promise((resolve, reject) => {
 
 export function ListingForm({ item, onSave }) {
   const [type, setType] = useState(item?.type ?? 'Sell');
+  const [fileVersion, setFileVersion] = useState(0);
+  const [photoSelected, setPhotoSelected] = useState(false);
   const [amount, setAmount] = useState(item?.amount > 0 ? String(item.amount) : '');
   const [exchange, setExchange] = useState(item?.exchange ?? '');
   const [removePhoto, setRemovePhoto] = useState(false);
   const [saving, setSaving] = useState(false);
-  const { error, run, feedback } = useFeedback();
+  const { error, run, feedback, clearFieldError } = useFeedback();
   const paid = type === 'Sell' || type === 'Rent';
+  const priceOption = paid ? 'Paid' : type;
+
+  function chooseType(next) {
+    setType(next);
+    setAmount('');
+    setExchange('');
+    clearFieldError('amount');
+    clearFieldError('exchange');
+  }
 
   return <section className="post-page" aria-labelledby="post-title">
     <div className="post-heading">
@@ -184,16 +194,21 @@ export function ListingForm({ item, onSave }) {
       }).finally(() => setSaving(false));
     }}>
       <fieldset className="post-block">
-        <legend>Listing type</legend>
-        <div className="post-types">{postTypes.map(([value, title, description]) =>
+        <legend>Price option</legend>
+        <div className="post-types">{priceOptions.map(([value, title, description]) =>
           <label className="post-type" key={value}>
-            <input type="radio" name="listingType" value={value} checked={type === value}
-              onChange={() => { setType(value); setAmount(''); setExchange(''); }} />
+            <input type="radio" name="priceOption" value={value} checked={priceOption === value}
+              onChange={() => chooseType(value === 'Paid' ? 'Sell' : value)} />
             <span><strong>{title}</strong><small>{description}</small></span>
           </label>
         )}</div>
-        {paid && <Field name="amount" label={type === 'Rent' ? 'Daily rate (BDT)' : 'Sale price (BDT)'} inputMode="decimal" value={amount}
-          onChange={e => setAmount(e.target.value)} required error={error} />}
+        {paid && <div className="post-detail-row">
+          <Field name="listingType" label="Paid listing type" value={type} onChange={e => chooseType(e.target.value)}>
+            <select><option>Sell</option><option>Rent</option></select>
+          </Field>
+          <Field name="amount" label={type === 'Rent' ? 'Daily rate (BDT)' : 'Sale price (BDT)'} inputMode="decimal" value={amount}
+            onChange={e => setAmount(e.target.value)} required error={error} />
+        </div>}
         {type === 'Exchange' && <Field name="exchange" label="What would you accept in exchange?" value={exchange}
           onChange={e => setExchange(e.target.value)} required error={error}><textarea rows="2" /></Field>}
       </fieldset>
@@ -213,7 +228,13 @@ export function ListingForm({ item, onSave }) {
       <fieldset className="post-block post-photo">
       <legend>Photo</legend>
       <p className="muted" id="photo-hint">Optional · JPG, PNG or WebP · Up to 1 MB</p>
-      <Field name="photo" label="Upload a photo" type="file" aria-describedby={error?.field === 'photo' ? 'photo-error photo-hint' : 'photo-hint'} accept="image/jpeg,image/png,image/webp" error={error} />
+      <Field key={fileVersion} name="photo" label="Upload a photo" type="file" aria-describedby={error?.field === 'photo' ? 'photo-error photo-hint' : 'photo-hint'} accept="image/jpeg,image/png,image/webp" error={error}
+        onChange={event => { setPhotoSelected(Boolean(event.target.files?.length)); clearFieldError('photo'); }} />
+      {photoSelected && <button type="button" className="secondary" onClick={() => {
+        setPhotoSelected(false);
+        setFileVersion(value => value + 1);
+        clearFieldError('photo');
+      }}>Clear selected photo</button>}
       {item?.photo && <label className="check"><input type="checkbox" checked={removePhoto} onChange={e => setRemovePhoto(e.target.checked)} /> Remove current photo</label>}
       </fieldset>
       {feedback}

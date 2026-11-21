@@ -29,8 +29,9 @@ function Marketplace({ listings, users }) {
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState('');
   const [type, setType] = useState('');
-  const items = filterListings(listings, search, category, type, false);
-  const clear = () => { setSearch(''); setCategory(''); setType(''); };
+  const [free, setFree] = useState(false);
+  const items = filterListings(listings, search, category, type, free);
+  const clear = () => { setSearch(''); setCategory(''); setType(''); setFree(false); };
   return <>
     <section className="hero editorial-hero">
       <div className="hero-copy"><p className="eyebrow"><span aria-hidden="true" /> SEU CAMPUS MARKETPLACE</p><h1>Good finds.<br /><span>Better together.</span></h1>
@@ -48,7 +49,7 @@ function Marketplace({ listings, users }) {
       <div className="type-grid" role="group" aria-label="Listing type">
         {listingTypes.map(option => <button type="button" key={option.value}
           className={'type-card type-' + option.color} aria-pressed={type === option.value}
-          onClick={() => setType(option.value)}>
+          onClick={() => { setType(option.value); setFree(false); }}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"
             strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false"><path d={option.icon} /></svg>
           <span>{option.label}</span>
@@ -68,7 +69,13 @@ function Marketplace({ listings, users }) {
       </div>
       <div className="listing-status">
         <p className="result-count" role="status">{items.length} {items.length === 1 ? 'listing' : 'listings'}</p>
-        {(search || category || type) && <button type="button" className="quiet reset-listings" onClick={clear}>Clear filters</button>}
+        <div className="listing-filter-actions">
+          <label className="check"><input type="checkbox" checked={free} onChange={event => {
+            setFree(event.target.checked);
+            if (event.target.checked) setType('');
+          }} /> Free items only</label>
+          {(search || category || type || free) && <button type="button" className="quiet reset-listings" onClick={clear}>Clear filters</button>}
+        </div>
       </div>
       {items.length ? <div className="grid">{items.map(item => <article key={item.id} className="card">
         <a className="card-link" href={'#item/' + item.id}>
@@ -107,8 +114,6 @@ function App() {
   let page;
   if (authPage && !user) {
     page = <Account key={screen} register={screen === 'register'} onSession={openSession} onUpdate={setState} />;
-  } else if (screen === "marketplace" && (!user || verified)) {
-    page = <Marketplace listings={state.listings} users={state.users} />;
   } else if (!verified) {
     page = <Account key={user?.id ?? 'guest'} user={user} onSession={openSession} onUpdate={setState} />;
   } else {
@@ -166,7 +171,6 @@ function App() {
         ) : <>
           <a className="account-link" href="#signin" aria-current={screen === 'signin' ? 'page' : undefined}>Sign in</a>
           <a className="account-link" href="#register" aria-current={screen === 'register' ? 'page' : undefined}>Register</a>
-          <a className="button primary" href="#post">+ Post item</a>
         </>}
       </div>
     </div></header>

@@ -352,7 +352,7 @@ input,select,textarea {border-color:#dcd2eb}
 .post-heading p {margin:0}
 .post-block {display:grid;gap:13px;min-width:0;margin:0;padding:14px 18px 18px;background:#fff;border:1px solid #e4dcf2;border-radius:16px}
 .post-block legend {color:#39255e;font-weight:750;padding:0 7px;font-size:1.05rem}
-.post-types {display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px}
+.post-types {display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px}
 .post-type {display:flex;align-items:flex-start;gap:7px;cursor:pointer;padding:11px 9px;border:1px solid #e3daf1;border-radius:11px;background:#fcfaff;color:#3b285e}
 .post-type input {margin:3px 0 0;width:15px;height:15px;min-height:0;flex:none;accent-color:#6742ad}
 .post-type:has(input:checked) {border-color:#8662c6;background:#eee5ff}
@@ -369,3 +369,9 @@ input,select,textarea {border-color:#dcd2eb}
   .post-types {grid-template-columns:repeat(2,minmax(0,1fr))}
   .post-block {padding-inline:11px}
 }
+
+.listing-filter-actions {display:flex;align-items:center;justify-content:flex-end;flex-wrap:wrap;gap:0 14px}
+.listing-filter-actions .check {display:flex;align-items:center;gap:7px;min-height:36px}
+.listing-filter-actions .check input {accent-color:#5836a6}
+.post-photo button {justify-self:start}
+@media(max-width:400px) {.post-detail-row {grid-template-columns:1fr}}
