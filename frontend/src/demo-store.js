@@ -1,6 +1,6 @@
 import { seed, updateMarket } from './market.js';
 
-export const DEMO_EMAIL = '2023100000350@seu.edu.bd';
+export const DEMO_EMAIL = 'demo@seu.edu.bd';
 export const DEMO_PASSWORD = 'UniCircleDemo123';
 
 const DATA_KEY = 'unicircle.demo.data.v1';

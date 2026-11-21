@@ -1,10 +1,19 @@
 import React, { useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { CATEGORIES, DEMO_USERS, TYPES, filterListings, label } from './market.js';
+import { CATEGORIES, DEMO_USERS, filterListings, label } from './market.js';
 import { Account, Admin, ItemDetails, ListingForm, Activity } from './screens.jsx';
 import { demoStore } from './demo-store.js';
 import { Badge, ItemVisual } from './visuals.jsx';
 import './style.css';
+
+const listingTypes = [
+  { value: 'Sell', label: 'Buy', color: 'mint', icon: 'M5 9h14l1 12H4L5 9Zm4 0V6a3 3 0 0 1 6 0v3' },
+  { value: 'Rent', label: 'Rent', color: 'blue', icon: 'M20 7v5h-5M4 17v-5h5m10.3-2A7.5 7.5 0 0 0 6 6.5L4 9m16 6-2 2.5A7.5 7.5 0 0 1 4.7 14' },
+  { value: 'Exchange', label: 'Exchange', color: 'amber', icon: 'M4 7h15m-4-4 4 4-4 4M20 17H5m4-4-4 4 4 4' },
+  { value: 'Donate', label: 'Donate', color: 'plum', icon: 'M12 20 4.5 12.8A4.6 4.6 0 1 1 12 7.6a4.6 4.6 0 1 1 7.5 5.2L12 20Z' },
+  { value: 'Free Borrowing', label: 'Free Borrowing', color: 'teal', icon: 'M12 6c-2.5-2-6-2.5-10-1v13c4-1.5 7.5-1 10 1 2.5-2 6-2.5 10-1V5c-4-1.5-7.5-1-10 1Zm0 0v13' },
+  { value: '', label: 'All listings', color: 'slate', icon: 'M3 3h7v7H3zm11 0h7v7h-7zM3 14h7v7H3zm11 0h7v7h-7z' },
+];
 
 const useHash = () => {
   const [route, setRoute] = useState(() => location.hash.slice(1) || 'marketplace');
@@ -20,35 +29,54 @@ function Marketplace({ listings, users }) {
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState('');
   const [type, setType] = useState('');
-  const [free, setFree] = useState(false);
-  const items = filterListings(listings, search, category, type, free);
+  const items = filterListings(listings, search, category, type, false);
+  const clear = () => { setSearch(''); setCategory(''); setType(''); };
   return <>
-    <section className="hero">
-      <div><p className="eyebrow">THE CAMPUS MARKETPLACE</p><h1>Find it on campus.</h1>
-        <p>Buy, sell, borrow, and share with your university community.</p></div>
-      <a className="button hero-button" href="#post">＋ Post an item</a>
+    <section className="hero editorial-hero">
+      <div className="hero-copy"><p className="eyebrow"><span aria-hidden="true" /> SEU CAMPUS MARKETPLACE</p><h1>Good finds.<br /><span>Better together.</span></h1>
+        <p>Find textbooks, calculators and everyday essentials from students on your campus.</p>
+        <button type="button" className="button hero-button" onClick={() => document.getElementById('listing-search').focus()}>Explore listings</button>
+      </div>
+      <div className="hero-visual" aria-hidden="true">
+        <div className="hero-image hero-image-a"><ItemVisual item={{ id: 'item-1', category: 'Books' }} /></div>
+        <div className="hero-image hero-image-b"><ItemVisual item={{ id: 'item-0', category: 'Electronics' }} /></div>
+        <div className="hero-image hero-image-c"><ItemVisual item={{ id: 'item-2', category: 'Study Supplies' }} /></div>
+      </div>
+    </section>
+    <section className="market-types" aria-labelledby="listing-types">
+      <h2 id="listing-types">Browse by type</h2>
+      <div className="type-grid" role="group" aria-label="Listing type">
+        {listingTypes.map(option => <button type="button" key={option.value}
+          className={'type-card type-' + option.color} aria-pressed={type === option.value}
+          onClick={() => setType(option.value)}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"
+            strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false"><path d={option.icon} /></svg>
+          <span>{option.label}</span>
+        </button>)}
+      </div>
     </section>
     <section aria-labelledby="browse-title" className="browse">
-      <h2 id="browse-title">Browse listings</h2>
-      <div className="filters">
-        <label>Search by title<input type="search" placeholder="Try calculator or books" value={search} onChange={e => setSearch(e.target.value)} /></label>
-        <label>Category<select value={category} onChange={e => setCategory(e.target.value)}>
-          <option value="">All categories</option>{CATEGORIES.map(option => <option key={option}>{option}</option>)}
-        </select></label>
-        <label>Listing type<select value={type} onChange={e => setType(e.target.value)}>
-          <option value="">All types</option>{TYPES.map(option => <option key={option}>{option}</option>)}
-        </select></label>
-        <label className="check"><input type="checkbox" checked={free} onChange={e => setFree(e.target.checked)} /> Free items</label>
+      <div className="browse-heading">
+        <h2 id="browse-title">{type ? listingTypes.find(option => option.value === type).label + ' listings' : 'Campus finds'}</h2>
+        <label className="market-search"><span className="sr-only">Search listings</span>
+          <input id="listing-search" type="search" placeholder="Search books, calculators and more" value={search} onChange={e => setSearch(e.target.value)} />
+        </label>
       </div>
-      <p className="result-count" role="status">{items.length} {items.length === 1 ? 'listing' : 'listings'} available</p>
+      <div className="category-rail" role="group" aria-label="Campus categories">
+        {['', ...CATEGORIES].map(option => <button type="button" key={option} aria-pressed={category === option}
+          onClick={() => setCategory(option)}>{option || 'All categories'}</button>)}
+      </div>
+      <div className="listing-status">
+        <p className="result-count" role="status">{items.length} {items.length === 1 ? 'listing' : 'listings'}</p>
+        {(search || category || type) && <button type="button" className="quiet reset-listings" onClick={clear}>Clear filters</button>}
+      </div>
       {items.length ? <div className="grid">{items.map(item => <article key={item.id} className="card">
         <a className="card-link" href={'#item/' + item.id}>
-          <ItemVisual item={item} />
-          <div className="card-body"><Badge>{item.type}</Badge><h3>{item.title}</h3>
-            <p className="muted">{item.condition} · {users.find(user => user.id === item.ownerId)?.name ?? 'Campus member'}</p>
-            <strong className="price">{label(item)}</strong></div>
+          <div className="tile-media"><ItemVisual item={item} /><Badge>{item.type === 'Sell' ? 'Buy' : item.type}</Badge></div>
+          <div className="card-body"><h3>{item.title}</h3><strong className="price">{label(item)}</strong>
+            <p className="muted">{item.condition} · {users.find(user => user.id === item.ownerId)?.name ?? 'Campus member'}</p></div>
         </a>
-      </article>)}</div> : <p className="panel">No matching items. Try a different title or filter.</p>}
+      </article>)}</div> : <div className="panel">No matching items. Try another search or category.</div>}
     </section>
   </>;
 }
@@ -68,6 +96,7 @@ function App() {
     const userId = account?.id ?? '';
     demoStore.setSession(userId);
     setSession(userId);
+    if (account?.status === "Verified" && ["item", "post"].includes(screen)) return;
     location.hash = !account ? 'signin' : account.status === 'Verified' ? 'marketplace' : 'verify';
   }
 
@@ -76,8 +105,10 @@ function App() {
   }
 
   let page;
-  if (authPage) {
+  if (authPage && !user) {
     page = <Account key={screen} register={screen === 'register'} onSession={openSession} onUpdate={setState} />;
+  } else if (screen === "marketplace" && (!user || verified)) {
+    page = <Marketplace listings={state.listings} users={state.users} />;
   } else if (!verified) {
     page = <Account key={user?.id ?? 'guest'} user={user} onSession={openSession} onUpdate={setState} />;
   } else {
@@ -103,6 +134,8 @@ function App() {
         break;
       case 'account':
       case 'verify':
+      case 'signin':
+      case 'register':
         page = <Account key={user.id} user={user} onSession={openSession} onUpdate={setState} />;
         break;
       default:
@@ -116,15 +149,25 @@ function App() {
       document.getElementById('main').focus();
     }}>Skip to content</a>
     <header className="header"><div className="header-inner">
-      <a className="brand" href={verified ? '#marketplace' : '#signin'}><span className="brand-mark" aria-hidden="true">U</span> UniCircle</a>
+      <a className="brand" href="#marketplace" aria-label="UniCircle home">
+        <span className="brand-mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="9" cy="12" r="5" /><circle cx="15" cy="12" r="5" /></svg></span>
+        <span className="brand-name">Uni<strong>Circle</strong></span>
+      </a>
       {verified && <nav aria-label="Main navigation">
         {[['marketplace', 'Marketplace'], ['post', 'Post Item'], ['activity', 'My Activity'], ...(user.role === 'admin' ? [['admin', 'Admin']] : [])].map(([hash, title]) =>
           <a key={hash} href={'#' + hash} aria-current={screen === hash ? 'page' : undefined}>{title}</a>)}
       </nav>}
       <div className="account-links" aria-label="Account">
-        {user && <a className="account-link" href={verified ? '#account' : '#verify'}>{verified ? user.name : 'Verification'}</a>}
-        <a className="account-link" href="#signin" aria-current={screen === 'signin' || (!user && !authPage) ? 'page' : undefined}>Sign in</a>
-        <a className="button secondary" href="#register" aria-current={screen === 'register' ? 'page' : undefined}>Register</a>
+        {user ? (
+          <a className="account-link" href={verified ? '#account' : '#verify'}
+            aria-current={screen === (verified ? 'account' : 'verify') ? 'page' : undefined}>
+            {verified ? 'Profile' : 'Verification'}
+          </a>
+        ) : <>
+          <a className="account-link" href="#signin" aria-current={screen === 'signin' ? 'page' : undefined}>Sign in</a>
+          <a className="account-link" href="#register" aria-current={screen === 'register' ? 'page' : undefined}>Register</a>
+          <a className="button primary" href="#post">+ Post item</a>
+        </>}
       </div>
     </div></header>
     <main id="main" className="shell" tabIndex={-1}>

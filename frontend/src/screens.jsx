@@ -47,6 +47,7 @@ function FormCard({ title, description, children }) {
 
 export function Account({ user, register = false, onSession, onUpdate }) {
   const [manual, setManual] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const { error, run, feedback } = useFeedback();
   if (user) {
     return <FormCard title={user.status === 'Verified' ? user.name : 'Verify your university account'} description={user.status === 'Verified' ? 'University account' : user.name}>
@@ -78,7 +79,20 @@ export function Account({ user, register = false, onSession, onUpdate }) {
       </div>
     </FormCard>;
   }
-  return <FormCard title={register ? 'Create your account' : 'Sign in'} description="Use your university account to access the marketplace.">
+  return <section className="auth-layout" aria-labelledby="auth-title">
+    <aside className="auth-intro">
+      <span className="auth-campus">SEU Campus Marketplace</span>
+      <h2>{register ? 'Join your campus community.' : 'Your campus, one marketplace.'}</h2>
+      <p>Find, share and pass on everyday essentials with other students.</p>
+      <a href="#marketplace">Browse marketplace</a>
+    </aside>
+    <div className="auth-main">
+    <nav className="auth-tabs" aria-label="Account access">
+      <a href="#signin" aria-current={!register ? 'page' : undefined}>Sign in</a>
+      <a href="#register" aria-current={register ? 'page' : undefined}>Register</a>
+    </nav>
+    <h1 id="auth-title">{register ? 'Create your account' : 'Welcome back'}</h1>
+    <p className="muted">{register ? 'Register with a university email or student ID.' : 'Sign in to request an item or post a listing.'}</p>
     <form onSubmit={e => {
       e.preventDefault();
       const data = valuesOf(e.currentTarget);
@@ -99,22 +113,28 @@ export function Account({ user, register = false, onSession, onUpdate }) {
         ? <Field name="universityId" label="University ID number" key="id" required error={error} />
         : <Field name="email" label="University email" key="email" type="email" autoComplete="email" required error={error} />
         : <Field name="identifier" label="University email or ID" autoComplete="username" defaultValue={DEMO_EMAIL} required error={error} />}
-      <Field name="password" label="Demo password" type="password" autoComplete="off"
+      <div className="password-field"><Field name="password" label="Demo password" type={showPassword ? 'text' : 'password'} autoComplete="off"
         aria-describedby={error?.field === 'password' ? 'password-error demo-password' : 'demo-password'} required error={error} />
+      <button type="button" className="quiet" aria-controls="password" onClick={() => setShowPassword(!showPassword)}>{showPassword ? 'Hide' : 'Show'}</button></div>
       <p className="demo-note" id="demo-password">
         {register ? 'Use fictional details for demo registration. To sign in again, use the demo password ' : 'Demo password '}
         <code>{DEMO_PASSWORD}</code>
       </p>
       {feedback}
-      <button>{register ? 'Register' : 'Sign in'}</button>
+      <button className="auth-submit">{register ? 'Create account' : 'Sign in'}</button>
     </form>
-    <a className="account-toggle" href={register ? '#signin' : '#register'}>
-      {register ? 'Already registered? Sign in' : 'New to UniCircle? Register'}
-    </a>
-  </FormCard>;
+    {!register && <button className="secondary auth-demo" type="button" onClick={() => run(() => onSession(demoStore.signIn(DEMO_EMAIL, DEMO_PASSWORD)))}>Try demo account</button>}
+    </div>
+  </section>;
 }
 
-const priceOption = type => ['Sell', 'Rent'].includes(type) ? 'Paid' : type ?? 'Paid';
+const postTypes = [
+  ['Sell', 'Sell', 'Set a price'],
+  ['Rent', 'Rent', 'Charge by the day'],
+  ['Exchange', 'Exchange', 'Swap for another item'],
+  ['Donate', 'Donate', 'Give it away for free'],
+  ['Free Borrowing', 'Free Borrowing', 'Lend it at no cost'],
+];
 const fileUrl = file => new Promise((resolve, reject) => {
   const reader = new FileReader();
   reader.onload = () => resolve(reader.result);
@@ -123,16 +143,20 @@ const fileUrl = file => new Promise((resolve, reject) => {
 });
 
 export function ListingForm({ item, onSave }) {
-  const [price, setPrice] = useState(priceOption(item?.type));
-  const [paidType, setPaidType] = useState(item?.type === 'Rent' ? 'Rent' : 'Sell');
+  const [type, setType] = useState(item?.type ?? 'Sell');
   const [amount, setAmount] = useState(item?.amount > 0 ? String(item.amount) : '');
   const [exchange, setExchange] = useState(item?.exchange ?? '');
   const [removePhoto, setRemovePhoto] = useState(false);
   const [saving, setSaving] = useState(false);
   const { error, run, feedback } = useFeedback();
-  const type = price === 'Paid' ? paidType : price;
+  const paid = type === 'Sell' || type === 'Rent';
 
-  return <FormCard title={item ? 'Edit listing' : 'Post an item'} description="One item per listing. Your post will appear in the shared campus feed.">
+  return <section className="post-page" aria-labelledby="post-title">
+    <div className="post-heading">
+      <a className="back-link" href={item ? '#activity' : '#marketplace'}>{item ? 'My listings' : 'Marketplace'}</a>
+      <h1 id="post-title">{item ? 'Edit listing' : 'Post an item'}</h1>
+      <p className="muted">Share an item with students on campus.</p>
+    </div>
     <form onSubmit={e => {
       e.preventDefault();
       const data = valuesOf(e.currentTarget);
@@ -140,7 +164,7 @@ export function ListingForm({ item, onSave }) {
       run(async () => {
         if (!data.title.trim()) throw fieldError('Enter a title.', 'title');
         if (!data.description.trim()) throw fieldError('Enter a description.', 'description');
-        if (price === 'Paid' && (!/^\d+(\.\d{1,2})?$/.test(amount) || Number(amount) <= 0 || !Number.isFinite(Number(amount)))) {
+        if (paid && (!/^\d+(\.\d{1,2})?$/.test(amount) || Number(amount) <= 0 || !Number.isFinite(Number(amount)))) {
           throw fieldError('Enter a positive BDT amount with up to two decimal places.', 'amount');
         }
         if (type === 'Exchange' && !exchange.trim()) throw fieldError('Describe what you would accept in exchange.', 'exchange');
@@ -154,40 +178,49 @@ export function ListingForm({ item, onSave }) {
         }
         onSave({
           title: data.title.trim(), description: data.description.trim(), category: data.category, condition: data.condition, type,
-          amount: price === 'Paid' ? Number(amount) : type === 'Exchange' ? null : 0,
+          amount: paid ? Number(amount) : type === 'Exchange' ? null : 0,
           exchange: type === 'Exchange' ? exchange.trim() : null, photo,
         });
       }).finally(() => setSaving(false));
     }}>
-      <Field name="title" label="Item title" defaultValue={item?.title} required maxLength={100} error={error} />
+      <fieldset className="post-block">
+        <legend>Listing type</legend>
+        <div className="post-types">{postTypes.map(([value, title, description]) =>
+          <label className="post-type" key={value}>
+            <input type="radio" name="listingType" value={value} checked={type === value}
+              onChange={() => { setType(value); setAmount(''); setExchange(''); }} />
+            <span><strong>{title}</strong><small>{description}</small></span>
+          </label>
+        )}</div>
+        {paid && <Field name="amount" label={type === 'Rent' ? 'Daily rate (BDT)' : 'Sale price (BDT)'} inputMode="decimal" value={amount}
+          onChange={e => setAmount(e.target.value)} required error={error} />}
+        {type === 'Exchange' && <Field name="exchange" label="What would you accept in exchange?" value={exchange}
+          onChange={e => setExchange(e.target.value)} required error={error}><textarea rows="2" /></Field>}
+      </fieldset>
+      <fieldset className="post-block">
+      <legend>Item details</legend>
+      <Field name="title" label="Item title" placeholder="e.g. Scientific calculator" defaultValue={item?.title} required maxLength={100} error={error} />
+      <div className="post-detail-row">
       <Field name="category" label="Category" defaultValue={item?.category ?? ''} required error={error}>
         <select><option value="" disabled>Select category</option>{CATEGORIES.map(value => <option key={value}>{value}</option>)}</select>
       </Field>
       <Field name="condition" label="Condition" defaultValue={item?.condition ?? ''} required error={error}>
         <select><option value="" disabled>Select condition</option>{CONDITIONS.map(value => <option key={value}>{value}</option>)}</select>
       </Field>
+      </div>
       <Field name="description" label="Description" defaultValue={item?.description} required maxLength={2000} error={error}><textarea rows="4" /></Field>
-      <Field name="priceOption" label="Price option" value={price} onChange={e => {
-        setPrice(e.target.value); setAmount(''); setExchange(''); setPaidType('Sell');
-      }}>
-        <select><option>Paid</option><option value="Donate">Free (Donate)</option><option>Exchange</option><option>Free Borrowing</option></select>
-      </Field>
-      {price === 'Paid' && <>
-        <Field name="paidType" label="Paid listing type" value={paidType} onChange={e => { setPaidType(e.target.value); setAmount(''); }}>
-          <select><option>Sell</option><option>Rent</option></select>
-        </Field>
-        <Field name="amount" label={type === 'Rent' ? 'Daily rate (BDT)' : 'Sale price (BDT)'} inputMode="decimal" value={amount}
-          onChange={e => setAmount(e.target.value)} required error={error} />
-      </>}
-      {type === 'Exchange' && <Field name="exchange" label="What would you accept in exchange?" value={exchange}
-        onChange={e => setExchange(e.target.value)} required error={error}><textarea rows="2" /></Field>}
-      <Field name="photo" label="Photo (optional)" type="file" accept="image/jpeg,image/png,image/webp" error={error} />
+      </fieldset>
+      <fieldset className="post-block post-photo">
+      <legend>Photo</legend>
+      <p className="muted" id="photo-hint">Optional · JPG, PNG or WebP · Up to 1 MB</p>
+      <Field name="photo" label="Upload a photo" type="file" aria-describedby={error?.field === 'photo' ? 'photo-error photo-hint' : 'photo-hint'} accept="image/jpeg,image/png,image/webp" error={error} />
       {item?.photo && <label className="check"><input type="checkbox" checked={removePhoto} onChange={e => setRemovePhoto(e.target.checked)} /> Remove current photo</label>}
+      </fieldset>
       {feedback}
       <div className="actions"><button disabled={saving}>{item ? 'Save changes' : 'Post item'}</button>
         <a href={item ? '#activity' : '#marketplace'}>Cancel</a></div>
     </form>
-  </FormCard>;
+  </section>;
 }
 
 export function ItemDetails({ item, user, owner, act }) {
