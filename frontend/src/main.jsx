@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { CATEGORIES, DEMO_USERS, filterListings, label } from './market.js';
+import { DEMO_USERS, filterListings, label } from './market.js';
 import { Account, Admin, ItemDetails, ListingForm, Activity } from './screens.jsx';
 import { demoStore } from './demo-store.js';
 import { Badge, ItemVisual } from './visuals.jsx';
+import { CategoryRail, Footer, HeroCollage } from './marketplace-ui.jsx';
 import './style.css';
 
 const listingTypes = [
@@ -34,15 +35,11 @@ function Marketplace({ listings, users }) {
   const clear = () => { setSearch(''); setCategory(''); setType(''); setFree(false); };
   return <>
     <section className="hero editorial-hero">
-      <div className="hero-copy"><p className="eyebrow"><span aria-hidden="true" /> SEU CAMPUS MARKETPLACE</p><h1>Good finds.<br /><span>Better together.</span></h1>
-        <p>Find textbooks, calculators and everyday essentials from students on your campus.</p>
+      <div className="hero-copy">
+        <h1>Good finds.<br /><span>On campus.</span></h1>
         <button type="button" className="button hero-button" onClick={() => document.getElementById('listing-search').focus()}>Explore listings</button>
       </div>
-      <div className="hero-visual" aria-hidden="true">
-        <div className="hero-image hero-image-a"><ItemVisual item={{ id: 'item-1', category: 'Books' }} /></div>
-        <div className="hero-image hero-image-b"><ItemVisual item={{ id: 'item-0', category: 'Electronics' }} /></div>
-        <div className="hero-image hero-image-c"><ItemVisual item={{ id: 'item-2', category: 'Study Supplies' }} /></div>
-      </div>
+      <HeroCollage />
     </section>
     <section className="market-types" aria-labelledby="listing-types">
       <h2 id="listing-types">Browse by type</h2>
@@ -63,10 +60,7 @@ function Marketplace({ listings, users }) {
           <input id="listing-search" type="search" placeholder="Search books, calculators and more" value={search} onChange={e => setSearch(e.target.value)} />
         </label>
       </div>
-      <div className="category-rail" role="group" aria-label="Campus categories">
-        {['', ...CATEGORIES].map(option => <button type="button" key={option} aria-pressed={category === option}
-          onClick={() => setCategory(option)}>{option || 'All categories'}</button>)}
-      </div>
+      <CategoryRail category={category} onSelect={setCategory} />
       <div className="listing-status">
         <p className="result-count" role="status">{items.length} {items.length === 1 ? 'listing' : 'listings'}</p>
         <div className="listing-filter-actions">
@@ -176,11 +170,12 @@ function App() {
     </div></header>
     <main id="main" className="shell" tabIndex={-1}>
       {page}
-      <aside className="demo-bar" aria-label="Demo accounts"><span>Demo mode · browser data</span>
+      <aside className="demo-bar" aria-label="Demo accounts"><span>Demo accounts</span>
         {DEMO_USERS.map(account => <button type="button" key={account.id} className="quiet" aria-pressed={user?.id === account.id}
           onClick={() => openSession(account)}>{account.name}</button>)}
       </aside>
     </main>
+    <Footer />
   </>;
 }
 

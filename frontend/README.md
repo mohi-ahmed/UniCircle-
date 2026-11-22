@@ -39,6 +39,7 @@ The demo photo picker supports JPG, PNG and WebP up to 1 MB. You can clear a sel
 | File | Responsibility |
 | --- | --- |
 | [src/main.jsx](src/main.jsx) | Navigation, access-based screen selection, Marketplace and shared state |
+| [src/marketplace-ui.jsx](src/marketplace-ui.jsx) | Collage animation, category navigation and Pointfex footer |
 | [src/screens.jsx](src/screens.jsx) | Account, post and edit form, item details, My Activity and Admin |
 | [src/demo-store.js](src/demo-store.js) | Demo session, registration, profile and browser persistence |
 | [src/market.js](src/market.js) | Listing types, filters, rental fees and request state transitions |
@@ -46,7 +47,7 @@ The demo photo picker supports JPG, PNG and WebP up to 1 MB. You can clear a sel
 
 ## Backend integration handoff
 
-Agree on Express endpoint URLs, payloads, response formats and enum values before wiring HTTP. The table describes what the UI needs. Align the integration with SRS v1.1.
+See [UniCircle API endpoints](API.md) for the proposed Express routes, payloads and response formats. The table below summarizes what the UI needs. Align the integration with SRS v1.1.
 
 | Area | Frontend sends | Backend provides or enforces |
 | --- | --- | --- |
