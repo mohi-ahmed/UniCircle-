@@ -16,6 +16,12 @@ npm run dev
 
 Open the **Local** URL printed by Vite. It is usually `http://localhost:5173`. Run `npm run build` for the production bundle, `npm run preview` to preview that bundle and `npm test` for the marketplace logic tests.
 
+## Mobile marketplace
+
+- The hero puts the heading above the collage on narrow screens. The collage animation lasts 2.2 seconds and can be replayed with the round button.
+- When the categories extend beyond the available width, the rail scrolls from right to left. Swipe, drag, or select a category to pause it. Use the play button to resume. The page respects the browser's reduced-motion setting.
+- The footer links to Marketplace, Post an item, My Activity and Pointfex. Help and About open as dialogs.
+
 ## Demo walkthrough
 
 1. On **Sign in**, choose **Try demo account**. To test the form manually, use `demo@seu.edu.bd` and the demo password shown on the page. The header displays **Profile** after sign-in. Use **Profile** to change your display name or sign out. Visitors see sign-in or registration, and unverified accounts see verification status.
@@ -61,6 +67,11 @@ See [UniCircle API endpoints](API.md) for the proposed Express routes, payloads 
 - **React wiring.** Start with the calls into `demo-store.js` from `main.jsx` and `screens.jsx`. Replace the synchronous demo calls with an async API client. Await each mutation before reporting success or navigating. Handle loading, field errors, expired sessions and conflicts, then refresh affected data. Remove the demo account switcher from the API-backed build.
 - **Team inputs.** Confirm the campus email domain, verification delivery and resend policy, pickup points, image size limit, and the JSON error format.
 
+Implement session and verification first, followed by listing reads/writes, request transitions, and admin moderation. Use the API document's examples and acceptance checks before switching the React frontend to HTTP.
+
 ## Verification status
 
-The production build and four marketplace logic tests passed on the frontend revision this guide describes. Route and form checks covered guest access, signed-in navigation, admin visibility and the five listing types. End-to-end browser QA and testing against the live API are pending.
+- `npm test` covers free filters, rental and return, edited exchange terms, and hidden-listing returns.
+- `npm run build` validates the deployable React bundle.
+- Browser smoke checks cover guest access, demo sign-in, mobile heading, collage timing, category movement and selection, footer navigation, and reduced motion.
+- Live API end-to-end checks require the backend implementation.

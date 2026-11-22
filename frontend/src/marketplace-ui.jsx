@@ -1,4 +1,4 @@
-import React, { useLayoutEffect, useRef, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { CATEGORIES } from './market.js';
 import { ItemVisual } from './visuals.jsx';
 
@@ -41,9 +41,9 @@ export function HeroCollage() {
       book.animate([
         { translate: '0 7px', rotate: '5deg', scale: .985 },
         { translate: '0 0', rotate: '0deg', scale: 1 },
-      ], { duration: 680, easing }),
-      fan(calculator, -14, 115, 790),
-      fan(tools, -10, 240, 830),
+      ], { duration: 1300, easing }),
+      fan(calculator, -14, 250, 1600),
+      fan(tools, -10, 500, 1700),
     ];
   }
 
@@ -73,62 +73,124 @@ export function HeroCollage() {
 export function CategoryRail({ category, onSelect }) {
   const rail = useRef(null);
   const indicator = useRef(null);
-  const [limits, setLimits] = useState({ overflow: false, start: true, end: true });
+  const drag = useRef(null);
+  const suppressClick = useRef(false);
+  const [paused, setPaused] = useState(false);
 
-  function updateLimits() {
-    const node = rail.current;
-    const max = node.scrollWidth - node.clientWidth;
-    const next = { overflow: max > 2, start: node.scrollLeft < 2, end: node.scrollLeft >= max - 2 };
-    setLimits(current => (
-      current.overflow === next.overflow && current.start === next.start && current.end === next.end ? current : next
-    ));
-  }
-
-  function placeIndicator() {
+  function placePill() {
     const node = rail.current;
     const selected = node.querySelector('button[aria-pressed="true"]');
     if (!selected) return;
-    const style = indicator.current.style;
-    style.translate = selected.offsetLeft + 'px ' + selected.offsetTop + 'px';
-    style.width = selected.offsetWidth + 'px';
-    style.height = selected.offsetHeight + 'px';
+    const marker = indicator.current;
+    marker.style.transform = 'translate(' + selected.offsetLeft + 'px, ' + selected.offsetTop + 'px)';
+    marker.style.width = selected.offsetWidth + 'px';
+    marker.style.height = selected.offsetHeight + 'px';
     node.dataset.ready = '';
+    node.toggleAttribute('data-overflow', node.scrollWidth > node.parentElement.clientWidth + 2);
   }
 
   useLayoutEffect(() => {
     const node = rail.current;
     const frame = requestAnimationFrame(() => { node.dataset.motion = ''; });
-    const observer = new ResizeObserver(() => {
-      placeIndicator();
-      updateLimits();
-    });
+    const observer = new ResizeObserver(placePill);
     observer.observe(node);
     node.querySelectorAll('button').forEach(button => observer.observe(button));
-    updateLimits();
     return () => {
       cancelAnimationFrame(frame);
       observer.disconnect();
     };
   }, []);
-
-  useLayoutEffect(placeIndicator, [category, limits.overflow]);
-
-  function scrollRail(direction) {
+  useLayoutEffect(placePill, [category]);
+  useEffect(() => {
+    if (paused) return;
     const node = rail.current;
-    const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
-    node.scrollBy({ left: direction * Math.max(130, node.clientWidth * .72), behavior: reduced ? 'instant' : 'smooth' });
+    const reduced = matchMedia('(prefers-reduced-motion: reduce)');
+    const canHover = matchMedia('(hover: hover) and (pointer: fine)');
+    let frame;
+    let previous = 0;
+    let begin = performance.now() + 1000;
+    let end = null;
+    let position = node.scrollLeft;
+
+    function advance(now) {
+      const elapsed = previous ? Math.min(now - previous, 40) : 0;
+      previous = now;
+      frame = requestAnimationFrame(advance);
+      if (reduced.matches || document.hidden || !node.hasAttribute('data-overflow') ||
+          (canHover.matches && node.parentElement.matches(':hover')) || node.matches(':focus-within')) {
+        position = node.scrollLeft;
+        end = null;
+        return;
+      }
+      if (now < begin) return;
+      const max = node.scrollWidth - node.clientWidth;
+      if (position >= max) {
+        end ??= now;
+        if (now - end >= 1300) {
+          node.scrollLeft = position = 0;
+          begin = now + 850;
+          end = null;
+        }
+        return;
+      }
+      position = Math.min(max, position + elapsed * .028);
+      node.scrollLeft = position;
+    }
+    frame = requestAnimationFrame(advance);
+    return () => cancelAnimationFrame(frame);
+  }, [paused]);
+
+  function startDrag(event) {
+    setPaused(true);
+    suppressClick.current = false;
+    const node = event.currentTarget;
+    if (event.pointerType !== 'mouse' || event.button !== 0 || !node.hasAttribute('data-overflow')) return;
+    drag.current = {id:event.pointerId, x:event.clientX, scroll:node.scrollLeft, moved:false};
+  }
+  function moveDrag(event) {
+    const current = drag.current;
+    if (!current || current.id !== event.pointerId) return;
+    const delta = event.clientX - current.x;
+    const node = event.currentTarget;
+    if (!current.moved) {
+      if (Math.abs(delta) < 6) return;
+      current.moved = true;
+      if (event.isTrusted) node.setPointerCapture(event.pointerId);
+      node.dataset.dragging = '';
+    }
+    node.scrollLeft = current.scroll - delta;
+  }
+  function finishDrag(event) {
+    const current = drag.current;
+    if (!current || current.id !== event.pointerId) return;
+    suppressClick.current = current.moved;
+    drag.current = null;
+    delete event.currentTarget.dataset.dragging;
+  }
+
+  function suppressDraggedClick(event) {
+    if (!suppressClick.current || event.detail === 0) return;
+    event.preventDefault();
+    event.stopPropagation();
+    suppressClick.current = false;
   }
 
   return <div className="category-wrap">
-    <button type="button" className="rail-arrow" hidden={!limits.overflow} disabled={limits.start}
-      aria-label="Scroll categories left" onClick={() => scrollRail(-1)}>‹</button>
-    <div className="category-rail" role="group" aria-label="Campus categories" ref={rail} onScroll={updateLimits}>
+    <div className="category-rail" role="group" aria-label="Campus categories" ref={rail}
+      onPointerDown={startDrag} onPointerMove={moveDrag} onPointerUp={finishDrag} onPointerCancel={finishDrag}
+      onLostPointerCapture={finishDrag} onWheel={() => setPaused(true)} onClickCapture={suppressDraggedClick}
+      onPointerLeave={event => {
+        if (!event.currentTarget.hasPointerCapture(event.pointerId)) finishDrag(event);
+      }}>
       <span className="category-indicator" aria-hidden="true" ref={indicator} />
       {['', ...CATEGORIES].map(option => <button type="button" key={option} aria-pressed={category === option}
-        onClick={() => onSelect(option)}>{option || 'All categories'}</button>)}
+        onClick={() => { setPaused(true); onSelect(option); }}>{option || 'All categories'}</button>)}
     </div>
-    <button type="button" className="rail-arrow" hidden={!limits.overflow} disabled={limits.end}
-      aria-label="Scroll categories right" onClick={() => scrollRail(1)}>›</button>
+    <button type="button" className="category-auto-toggle"
+      aria-label={paused ? 'Play automatic category scroll' : 'Pause automatic category scroll'}
+      onClick={() => setPaused(current => !current)}>
+      <span aria-hidden="true">{paused ? '▶' : 'Ⅱ'}</span>
+    </button>
   </div>;
 }
 

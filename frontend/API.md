@@ -78,4 +78,26 @@ The server calculates fee as the number of calendar days from pickup to return t
 | `POST /admin/listings/:id/hide` | Admin | Requires a `reason`. Removes the listing from the feed and cancels pending requests, including an accepted request if still reserved. A checked-out request can still complete return. Returns updated listing. |
 | `GET /admin/audit` | Admin | Returns timestamped review and moderation actions, including administrator and reason if supplied. |
 
+## Frontend integration and acceptance checks
+
+1. Map the API type values `sell`, `rent`, `exchange`, `donate`, and `free_borrowing` to the five labels in `market.js`. Convert integer poisha to BDT for display and treat submitted price fields as decimal text before conversion.
+2. Add an async API client at the calls currently routed through `demo-store.js`. Await mutations, map validation fields to inputs, then refresh listings or My Activity. Handle `401` by returning to sign-in and refresh state on `409`.
+3. Verify that an unverified account gets `403` on member routes, that private account fields stay out of listing responses, and that only the two participants receive pickup details.
+4. Verify donation creation returns zero cost, the free filter finds both zero-cost types, and a competing acceptance returns `409` while the winning request reserves the item.
+5. Verify a checked-out rental can still be returned after moderation hides its listing. The listing must remain off the feed after return.
+
+### Example validation response
+
+```json
+{
+  "error": {
+    "code": "VALIDATION_ERROR",
+    "message": "Check the request dates.",
+    "fields": {
+      "returnDate": "Return date must be after pickup date."
+    }
+  }
+}
+```
+
 Before implementation, confirm campus email domains, official pickup points, the session and CSRF policy, enum names, and response schemas with the backend team.
