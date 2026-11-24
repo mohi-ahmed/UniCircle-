@@ -16,7 +16,10 @@
     "backend": {
       "root": "backend/",
       "framework": "express",
-      "entrypoint": "api/index.ts"
+      "entrypoint": "api/index.ts",
+      "includeFiles": [
+        "node_modules/**"
+      ]
     }
   },
   "rewrites": [
